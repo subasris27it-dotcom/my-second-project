@@ -1,0 +1,133 @@
+from fastapi import FastAPI
+from datetime import datetime
+
+app = FastAPI()
+
+# Dummy ticket storage
+tickets = []
+
+# Home API
+@app.get("/")
+def home():
+    return {"message": "Ticket Escalation Backend Running"}
+
+# View all tickets
+@app.get("/tickets")
+def get_tickets():
+    return tickets
+
+# Create ticket
+@app.post("/tickets")
+def create_ticket(ticket: dict):
+
+    ticket["id"] = len(tickets) + 1
+
+    # Default status
+    ticket["status"] = "Open"
+
+    # Created time
+    ticket["created_at"] = str(datetime.now())
+
+    tickets.append(ticket)
+
+    return {
+        "message": "Ticket Created",
+        "ticket": ticket
+    }
+
+# Escalate ticket
+@app.put("/tickets/escalate/{ticket_id}")
+def escalate_ticket(ticket_id: int):
+
+    for ticket in tickets:
+
+        if ticket["id"] == ticket_id:
+
+            ticket["status"] = "Escalated"
+
+            return {
+                "message": "Ticket Escalated",
+                "ticket": ticket
+            }
+
+# Close ticket
+@app.put("/tickets/close/{ticket_id}")
+def close_ticket(ticket_id: int):
+
+    for ticket in tickets:
+
+        if ticket["id"] == ticket_id:
+
+            ticket["status"] = "Closed"
+
+            return {
+                "message": "Ticket Closed",
+                "ticket": ticket
+            }
+
+# Delete ticket
+@app.delete("/tickets/{ticket_id}")
+def delete_ticket(ticket_id: int):
+
+    global tickets
+
+    tickets = [
+        ticket for ticket in tickets
+        if ticket["id"] != ticket_id
+    ]
+
+    return {"message": "Ticket Deleted"}
+
+# Search ticket
+@app.get("/tickets/search/{title}")
+def search_ticket(title: str):
+
+    result = []
+
+    for ticket in tickets:
+
+        if title.lower() in ticket["title"].lower():
+
+            result.append(ticket)
+
+    return result
+
+# Filter tickets by status
+@app.get("/tickets/status/{status}")
+def filter_ticket(status: str):
+
+    result = []
+
+    for ticket in tickets:
+
+        if ticket["status"].lower() == status.lower():
+
+            result.append(ticket)
+
+    return result
+
+# Dashboard analytics
+@app.get("/dashboard")
+def dashboard():
+
+    open_count = 0
+    escalated_count = 0
+    closed_count = 0
+
+    for ticket in tickets:
+
+        if ticket["status"] == "Open":
+            open_count += 1
+
+        elif ticket["status"] == "Escalated":
+            escalated_count += 1
+
+        elif ticket["status"] == "Closed":
+            closed_count += 1
+
+    return {
+        "Open Tickets": open_count,
+        "Escalated Tickets": escalated_count,
+        "Closed Tickets": closed_count,
+        "Total Tickets": len(tickets)
+    }
